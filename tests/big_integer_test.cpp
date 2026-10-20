@@ -75,21 +75,22 @@ TEST_CASE("big integers follow the rules of the built-in integers", "[big_intege
     REQUIRE_THROWS_AS(big_integer(1) / 0, std::domain_error);
     REQUIRE_THROWS_AS(big_integer(1) % big_integer(), std::domain_error);
     big_integer x = 5;
+    const big_integer& alias = x;  // operations of an integer with itself
     REQUIRE(x++ == 5);
     REQUIRE(++x == 7);
     REQUIRE(--x == 6);
-    x += x;
+    x += alias;
     REQUIRE(x == 12);
-    x *= x;
+    x *= alias;
     REQUIRE(x == 144);
-    x -= x;
+    x -= alias;
     REQUIRE(x.is_zero());
     REQUIRE_FALSE(x.is_negative());
     x = big_integer(1) << 200;
-    x /= x;
+    x /= alias;
     REQUIRE(x == 1);
     x = big_integer(1) << 200;
-    x %= x;
+    x %= alias;
     REQUIRE(x == 0);
     REQUIRE(big_integer::pow(3, 0) == 1);
     REQUIRE(big_integer::pow(-2, 101) == -(big_integer(1) << 101));
