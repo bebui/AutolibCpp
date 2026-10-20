@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: "GCC 14", os: ubuntu-24.04, cc: gcc-14, cxx: g++-14, preset: debug }
+          - { name: "Clang 18", os: ubuntu-24.04, cc: clang-18, cxx: clang++-18, preset: debug }
+          - { name: "GCC 14 sanitizers", os: ubuntu-24.04, cc: gcc-14, cxx: g++-14, preset: sanitize }
+          - { name: "Clang 18 release", os: ubuntu-24.04, cc: clang-18, cxx: clang++-18, preset: release }
+          - { name: "macOS", os: macos-14, preset: debug }
+          - { name: "MSVC", os: windows-2022, preset: release }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        shell: bash
+        run: |
+          if [ -n "${{ matrix.cxx }}" ]; then export CC=${{ matrix.cc }} CXX=${{ matrix.cxx }}; fi
+          cmake --preset ${{ matrix.preset }}
+      - name: Build
+        run: cmake --build build/${{ matrix.preset }} --config ${{ matrix.preset == 'release' && 'Release' || 'Debug' }} --parallel 4
+      - name: Test
+        run: ctest --test-dir build/${{ matrix.preset }} -C ${{ matrix.preset == 'release' && 'Release' || 'Debug' }} --output-on-failure --parallel 4
+
+  install:
+    name: Install and use with find_package
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DAUTOLIB_BUILD_TESTS=OFF -DAUTOLIB_BUILD_EXAMPLES=OFF
+          cmake --build build --parallel 4
+          cmake --install build --prefix "$PWD/prefix"
+      - name: Use
+        run: |
+          mkdir consumer
+          cat > consumer/CMakeLists.txt <<'CMAKE'
+          cmake_minimum_required(VERSION 3.25)
+          project(consumer CXX)
+          find_package(autolib REQUIRED)
+          add_executable(quickstart ../examples/quickstart.cpp)
+          target_link_libraries(quickstart PRIVATE autolib::autolib)
+          CMAKE
+          cmake -S consumer -B consumer/build -DCMAKE_PREFIX_PATH="$PWD/prefix"
+          cmake --build consumer/build
+          ./consumer/build/quickstart
