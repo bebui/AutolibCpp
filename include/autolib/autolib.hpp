@@ -12,3 +12,4 @@
 #include "autolib/regex.hpp"
 #include "autolib/searcher.hpp"
 #include "autolib/version.hpp"
+#include "autolib/words.hpp"

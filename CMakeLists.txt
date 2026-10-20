@@ -32,7 +32,8 @@ add_library(autolib
     src/minimize.cpp
     src/reduce.cpp
     src/regex.cpp
-    src/searcher.cpp)
+    src/searcher.cpp
+    src/words.cpp)
 add_library(autolib::autolib ALIAS autolib)
 
 target_compile_features(autolib PUBLIC cxx_std_20)

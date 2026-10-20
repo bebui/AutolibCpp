@@ -18,7 +18,8 @@ add_executable(autolib_tests
     language_test.cpp
     random_test.cpp
     regex_test.cpp
-    search_test.cpp)
+    search_test.cpp
+    words_test.cpp)
 target_link_libraries(autolib_tests PRIVATE autolib::autolib autolib_options Catch2::Catch2WithMain)
 target_compile_definitions(autolib_tests PRIVATE AUTOLIB_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
 catch_discover_tests(autolib_tests)
