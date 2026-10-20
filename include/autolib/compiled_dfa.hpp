@@ -41,6 +41,7 @@ public:
     /// The automaton recognizing the empty language, without any state.
     compiled_dfa() = default;
     /// Compiles an automaton, determinizing it first if needed. The automaton is not minimized.
+    /// \param a the automaton
     /// \param lookup_table whether to build the transition table when it is small enough
     explicit compiled_dfa(const automaton& a, bool lookup_table = true);
 

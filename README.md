@@ -22,6 +22,21 @@ bool accepted = a({1, 0, 1, 1});     // membership : true
 auto w = d.shortest_word();          // std::optional<word> : {0, 0, 0}
 ```
 
+Documentation : [C++](https://bebui.github.io/AutolibCpp/cpp/) · [Python](https://bebui.github.io/AutolibCpp/python/)
+
+The library is also a Python package, with the same algorithms :
+
+```sh
+pip install automaton-lib
+```
+
+```python
+from autolib import Automaton
+a = Automaton("(0|1)*0(0|1){2}")
+[0, 1, 1] in a & ~Automaton("11")     # True
+a.count_words(100) == 2**99            # True, exactly
+```
+
 ## Features
 
 - **Automata over 32-bit integer symbols**, whose transitions read sets of intervals, so that huge alphabets cost
@@ -230,6 +245,18 @@ cmake --install build/release --prefix /usr/local
 ```cmake
 find_package(autolib REQUIRED)
 target_link_libraries(my_program PRIVATE autolib::autolib)
+```
+
+## Python
+
+The Python package `automaton-lib`, imported as `autolib`, binds the library with nanobind
+(`python/`). Wheels are built for Linux, macOS and Windows by `cibuildwheel`; `pip install .` builds it from the
+sources. The guides of `docs/python` hold examples run by the tests :
+
+```sh
+pip install . pytest numpy
+pytest python/tests
+pytest --doctest-glob="*.md" docs/python
 ```
 
 ## Developing

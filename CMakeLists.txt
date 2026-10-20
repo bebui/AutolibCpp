@@ -17,6 +17,12 @@ option(AUTOLIB_BUILD_EXAMPLES "Build the examples" ${AUTOLIB_TOP_LEVEL})
 option(AUTOLIB_BUILD_BENCHMARKS "Build the benchmarks" OFF)
 option(AUTOLIB_WARNINGS_AS_ERRORS "Treat warnings as errors" OFF)
 option(AUTOLIB_SANITIZE "Build with the address and undefined behaviour sanitizers" OFF)
+option(AUTOLIB_BUILD_PYTHON "Build the Python module (set by pip through scikit-build-core)" OFF)
+
+if(AUTOLIB_BUILD_PYTHON)
+    # The library is linked statically into the Python module
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
@@ -93,17 +99,22 @@ endif()
 if(AUTOLIB_BUILD_BENCHMARKS)
     add_subdirectory(benchmarks)
 endif()
+if(AUTOLIB_BUILD_PYTHON)
+    add_subdirectory(python)
+endif()
 
-# Installation : find_package(autolib) then target_link_libraries(... autolib::autolib)
-install(TARGETS autolib EXPORT autolibTargets
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(DIRECTORY include/autolib DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} FILES_MATCHING PATTERN "*.hpp")
-install(FILES "${PROJECT_BINARY_DIR}/include/autolib/version.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/autolib)
-install(EXPORT autolibTargets NAMESPACE autolib:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/autolib)
-configure_package_config_file(cmake/autolibConfig.cmake.in "${PROJECT_BINARY_DIR}/autolibConfig.cmake"
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/autolib)
-write_basic_package_version_file("${PROJECT_BINARY_DIR}/autolibConfigVersion.cmake" COMPATIBILITY SameMajorVersion)
-install(FILES "${PROJECT_BINARY_DIR}/autolibConfig.cmake" "${PROJECT_BINARY_DIR}/autolibConfigVersion.cmake"
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/autolib)
+if(NOT SKBUILD)  # a Python wheel holds the module only
+    # Installation : find_package(autolib) then target_link_libraries(... autolib::autolib)
+    install(TARGETS autolib EXPORT autolibTargets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(DIRECTORY include/autolib DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} FILES_MATCHING PATTERN "*.hpp")
+    install(FILES "${PROJECT_BINARY_DIR}/include/autolib/version.hpp" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/autolib)
+    install(EXPORT autolibTargets NAMESPACE autolib:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/autolib)
+    configure_package_config_file(cmake/autolibConfig.cmake.in "${PROJECT_BINARY_DIR}/autolibConfig.cmake"
+        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/autolib)
+    write_basic_package_version_file("${PROJECT_BINARY_DIR}/autolibConfigVersion.cmake" COMPATIBILITY SameMajorVersion)
+    install(FILES "${PROJECT_BINARY_DIR}/autolibConfig.cmake" "${PROJECT_BINARY_DIR}/autolibConfigVersion.cmake"
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/autolib)
+endif()
