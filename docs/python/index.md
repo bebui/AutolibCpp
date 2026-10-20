@@ -36,6 +36,7 @@ integers; words are any sequence of integers, and numpy arrays are read in place
 :caption: Guide
 
 getting-started
+examples
 regular-expressions
 languages
 words

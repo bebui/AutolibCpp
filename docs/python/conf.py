@@ -7,7 +7,11 @@ author = "Julien Menana"
 copyright = "2025-2026, Julien Menana"
 release = autolib.__version__
 
-extensions = ["myst_parser", "sphinx.ext.autodoc", "sphinx.ext.intersphinx"]
+extensions = ["myst_parser", "sphinx.ext.autodoc", "sphinx.ext.intersphinx", "sphinx_copybutton"]
+# The copy button copies the code without the prompts and the outputs
+copybutton_prompt_text = r">>> |\.\.\. "
+copybutton_prompt_is_regexp = True
+copybutton_only_copy_prompt_lines = True
 myst_enable_extensions = ["colon_fence", "deflist"]
 source_suffix = {".md": "markdown", ".rst": "restructuredtext"}
 intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
