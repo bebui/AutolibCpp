@@ -1,0 +1,7 @@
+'x'            valid
+'_tmp1'        valid
+'2fast'        invalid
+'snake_case'   valid
+'kebab-case'   invalid
+identifiers of 8 characters : 208765973875851
+random : ['nfUl0wAl', 'EW6LdO0e', 'IQoF4KEC']

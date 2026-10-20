@@ -1,0 +1,11 @@
+cat   distance 0
+cart  distance 1
+chat  distance 1
+coat  distance 1
+dog   too far
+act   too far
+cast  distance 1
+scat  distance 1
+at    distance 1
+car   distance 1
+closest : [('cat', 0.0), ('ca', 1.0), ('ct', 1.0), ('at', 1.0)]

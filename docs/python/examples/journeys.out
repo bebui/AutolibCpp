@@ -1,0 +1,10 @@
+Pareto front :
+   25 min  27 EUR  taxi + express
+   28 min  20 EUR  bus + express
+   35 min  18 EUR  walk + express
+   45 min  15 EUR  taxi + train
+   48 min   8 EUR  bus + train
+   55 min   6 EUR  walk + train
+time worth  5 EUR/h : walk + train
+time worth 20 EUR/h : bus + train
+time worth 60 EUR/h : bus + express
