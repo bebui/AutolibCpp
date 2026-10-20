@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>autolib documentation</title>
+<style>
+  :root { --bg: #fbfbfd; --fg: #1d1d22; --muted: #5b5b66; --card: #ffffff; --border: #e3e3ea; --accent: #2f5bd3; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #131317; --fg: #ececf1; --muted: #a0a0ad; --card: #1c1c22; --border: #2c2c35; --accent: #7fa2ff; }
+  }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 56px 16px; }
+  h1 { font-size: 2rem; margin: 0 0 8px; }
+  p.lead { color: var(--muted); margin: 0 0 32px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  a.card { display: block; padding: 20px; background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+           color: inherit; text-decoration: none; }
+  a.card:hover { border-color: var(--accent); }
+  .card h2 { margin: 0 0 6px; font-size: 1.15rem; color: var(--accent); }
+  .card p { margin: 0 0 12px; color: var(--muted); }
+  code { font: 0.9em ui-monospace, SFMono-Regular, Menlo, monospace; }
+  footer { margin-top: 40px; color: var(--muted); font-size: 0.9rem; }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>autolib</h1>
+  <p class="lead">Finite automata over integer symbols : regular expressions, operators on languages, counting and
+    sampling of words, searches, weighted automata and Pareto fronts.</p>
+  <div class="cards">
+    <a class="card" href="python/">
+      <h2>Python</h2>
+      <p>Guides with examples, and the API reference.</p>
+      <code>pip install automaton-lib</code>
+    </a>
+    <a class="card" href="cpp/">
+      <h2>C++20</h2>
+      <p>The library itself : classes, operators and algorithms.</p>
+      <code>find_package(autolib)</code>
+    </a>
+  </div>
+  <footer>Source and benchmarks on <a href="https://github.com/bebui/AutolibCpp">GitHub</a> · LGPL 3.0 or later</footer>
+</main>
+</body>
+</html>

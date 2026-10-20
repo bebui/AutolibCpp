@@ -1,3 +1,10 @@
 build/
 .cache/
 compile_commands.json
+
+# Python
+__pycache__/
+*.egg-info/
+python/autolib/*.so
+python/autolib/*.pyd
+dist/

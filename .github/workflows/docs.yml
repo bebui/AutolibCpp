@@ -1,0 +1,51 @@
+name: Documentation
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the tools and the package
+        run: |
+          sudo apt-get update && sudo apt-get install -y doxygen
+          git clone --depth 1 --branch v2.5.0 https://github.com/jothepro/doxygen-awesome-css.git build/doxygen-awesome
+          python -m pip install . pytest numpy -r docs/requirements.txt
+      - name: Run the examples of the guides
+        run: python -m pytest -q --doctest-glob="*.md" docs/python
+      - name: Python documentation
+        run: python -m sphinx -b html -W --keep-going docs/python site/python
+      - name: C++ documentation
+        run: |
+          mkdir -p build/docs/cpp
+          DOXYGEN_AWESOME=build/doxygen-awesome doxygen docs/Doxyfile
+          cp -r build/docs/cpp site/cpp
+          cp docs/index.html site/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

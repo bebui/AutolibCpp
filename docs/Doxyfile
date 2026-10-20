@@ -1,0 +1,47 @@
+# Doxygen configuration of the C++ documentation : run from the root of the repository, with
+# DOXYGEN_AWESOME pointing to a checkout of doxygen-awesome-css.
+
+PROJECT_NAME           = "autolib"
+PROJECT_BRIEF          = "Finite automata over integer symbols, in C++20"
+OUTPUT_DIRECTORY       = build/docs/cpp
+CREATE_SUBDIRS         = NO
+INPUT                  = README.md include/autolib
+USE_MDFILE_AS_MAINPAGE = README.md
+FILE_PATTERNS          = *.hpp *.md
+RECURSIVE              = YES
+EXCLUDE                = include/autolib/detail
+EXCLUDE_SYMBOLS        = autolib::detail autolib::detail::* nanobind std
+STRIP_FROM_PATH        = .
+STRIP_FROM_INC_PATH    = include
+FULL_PATH_NAMES        = YES
+JAVADOC_AUTOBRIEF      = YES
+QT_AUTOBRIEF           = YES
+MARKDOWN_SUPPORT       = YES
+AUTOLINK_SUPPORT       = YES
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+HIDE_UNDOC_RELATIONS   = YES
+SORT_MEMBER_DOCS       = NO
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+PREDEFINED             = AUTOLIB_EXPORT=
+QUIET                  = YES
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = NO
+GENERATE_LATEX         = NO
+GENERATE_HTML          = YES
+HTML_OUTPUT            = .
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
+HTML_COLORSTYLE        = LIGHT
+HTML_EXTRA_STYLESHEET  = $(DOXYGEN_AWESOME)/doxygen-awesome.css $(DOXYGEN_AWESOME)/doxygen-awesome-sidebar-only.css
+SOURCE_BROWSER         = NO
+INLINE_SOURCES         = NO
+SEARCHENGINE           = YES
+HAVE_DOT               = NO
+CLASS_GRAPH            = NO
+BUILTIN_STL_SUPPORT    = YES
+WARN_NO_PARAMDOC       = NO
