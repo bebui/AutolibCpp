@@ -8,3 +8,4 @@ __pycache__/
 python/autolib/*.so
 python/autolib/*.pyd
 dist/
+docs/python/figures/*.svg

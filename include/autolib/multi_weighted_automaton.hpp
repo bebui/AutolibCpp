@@ -11,6 +11,7 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <string>
 #include <vector>
 
 #include "autolib/dyadic.hpp"
@@ -178,6 +179,9 @@ public:
     /// A compiled evaluator of a deterministic automaton.
     /// \throws std::invalid_argument if the graph is not deterministic
     [[nodiscard]] compiled_multi_weighted_dfa compile() const;
+    /// The Graphviz description, with the vectors of costs; the edges of `highlight` are drawn in colour.
+    [[nodiscard]] std::string to_dot(std::span<const edge_id> highlight = {}) const;
+    [[nodiscard]] std::string to_dot(const multi_weighted_path& highlight) const { return to_dot(highlight.edges()); }
 
 private:
     friend struct detail::weighted_access;

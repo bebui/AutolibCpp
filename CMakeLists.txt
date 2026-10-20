@@ -42,6 +42,7 @@ add_library(autolib
     src/regex.cpp
     src/searcher.cpp
     src/weighted/compiled.cpp
+    src/weighted/dot.cpp
     src/weighted/enumeration.cpp
     src/weighted/exact_costs.cpp
     src/weighted/graph.cpp

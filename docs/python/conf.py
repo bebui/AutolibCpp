@@ -1,6 +1,20 @@
 # Sphinx configuration of the Python documentation of automaton-lib.
 
+import pathlib
+import runpy
+import os
+
 import autolib
+
+# The drawings of the visualization page, made by the scripts it shows
+figures = pathlib.Path(__file__).parent / "figures"
+here = os.getcwd()
+os.chdir(figures)
+try:
+    for script in sorted(figures.glob("*.py")):
+        runpy.run_path(str(script), run_name="__main__")
+finally:
+    os.chdir(here)
 
 project = "automaton-lib"
 author = "Julien Menana"

@@ -114,6 +114,9 @@ by their order of creation, and parallel edges are never merged.
         .def("run", [](const automaton_graph& g, const word_view& w) { return g.run(w); }, nb::arg("word"))
         .def("__contains__", [](const automaton_graph& g, const word_view& w) { return g.run(w); })
         .def("to_automaton", &automaton_graph::to_automaton)
+        .def("to_dot", [](const automaton_graph& g, const std::optional<std::vector<edge_id>>& highlight) {
+            return highlight ? g.to_dot(*highlight) : g.to_dot();
+        }, nb::arg("highlight") = nb::none(), "The Graphviz description, the edges of highlight drawn in colour.")
         .def("same_as", &automaton_graph::same_as, nb::arg("other"), "Whether both designate the same graph.")
         .def("__repr__", [](const automaton_graph& g) {
             return "<AutomatonGraph : " + std::to_string(g.state_count()) + " states, " + std::to_string(g.edge_count()) + " edges>";
@@ -216,6 +219,12 @@ A word not accepted costs inf, and -inf when negative cycles make its cost unbou
              "Whether an accepting path reads the word, whatever the costs.")
         .def("__contains__", [](const weighted_automaton& a, const word_view& w) { return a.run(w); })
         .def("to_automaton", &weighted_automaton::to_automaton, "The automaton of the language, without the costs.")
+        .def("to_dot", [](const weighted_automaton& a, const weighted_path& path) { return a.to_dot(path); }, nb::arg("highlight"))
+        .def("to_dot", [](const weighted_automaton& a, const std::optional<std::vector<edge_id>>& highlight) {
+            return highlight ? a.to_dot(*highlight) : a.to_dot();
+        }, nb::arg("highlight") = nb::none(),
+            "The Graphviz description : symbols / cost on the edges, final costs under the accepting states; the edges of "
+            "highlight, a WeightedPath or a list of edges, are drawn in colour.")
         .def("evaluator", &weighted_automaton::evaluator)
         .def("optimal_cost_with_prefix", [](const weighted_automaton& a, const word_view& w) { return a.optimal_cost_with_prefix(w); },
              nb::arg("prefix"))
@@ -352,6 +361,12 @@ A word not accepted costs inf, and -inf when negative cycles make its cost unbou
         .def("run", [](const multi_weighted_automaton& a, const word_view& w) { return a.run(w); }, nb::arg("word"))
         .def("__contains__", [](const multi_weighted_automaton& a, const word_view& w) { return a.run(w); })
         .def("to_automaton", &multi_weighted_automaton::to_automaton)
+        .def("to_dot", [](const multi_weighted_automaton& a, const multi_weighted_path& path) { return a.to_dot(path); }, nb::arg("highlight"))
+        .def("to_dot", [](const multi_weighted_automaton& a, const std::optional<std::vector<edge_id>>& highlight) {
+            return highlight ? a.to_dot(*highlight) : a.to_dot();
+        }, nb::arg("highlight") = nb::none(),
+            "The Graphviz description with the vectors of costs; the edges of highlight, a MultiWeightedPath or a list of "
+            "edges, are drawn in colour.")
         .def("project", &multi_weighted_automaton::project, nb::arg("dimension"))
         .def("select_dimensions", [](const multi_weighted_automaton& a, const std::vector<std::size_t>& d) { return a.select_dimensions(d); },
              nb::arg("dimensions"))

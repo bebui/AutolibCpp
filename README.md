@@ -182,6 +182,7 @@ for (const auto& path : a.paths_by_cost())             // every path by increasi
 auto d = a.determinize().minimize();                   // exact, with costs pushed toward the start
 auto both = a | a.star();                              // least cost over both
 double fast = d.compile()({1, 0, 0});                  // evaluator of a deterministic automaton
+std::string dot = a.to_dot(*a.best_path());          // Graphviz, the best path in colour
 ```
 
 An automaton is weighted directly, and a snapshot lets several weightings share the same graph :

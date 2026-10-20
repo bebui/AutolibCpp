@@ -14,6 +14,7 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <string>
 #include <vector>
 
 #include "autolib/dyadic.hpp"
@@ -232,6 +233,12 @@ public:
     [[nodiscard]] bool run(std::initializer_list<symbol> w) const { return graph_.run(w); }
     /// A new automaton recognizing the same words, without the costs nor the distinct parallel paths.
     [[nodiscard]] automaton to_automaton() const { return graph_.to_automaton(); }
+
+    /// The Graphviz description : `symbols / cost` on the edges, the final costs under the accepting states, the
+    /// initial cost on the arrow of the initial state; the edges of `highlight` (a best path, for example) are
+    /// drawn in colour. Epsilon edges are dashed.
+    [[nodiscard]] std::string to_dot(std::span<const edge_id> highlight = {}) const;
+    [[nodiscard]] std::string to_dot(const weighted_path& highlight) const { return to_dot(highlight.edges()); }
 
     /// The cost of a word : +infinity if it is not accepted, -infinity if unbounded.
     [[nodiscard]] double cost(std::span<const symbol> w) const;

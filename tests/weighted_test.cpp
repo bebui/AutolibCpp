@@ -707,3 +707,37 @@ TEST_CASE("epsilon edges read no position and may stay cyclic", "[weighted][laye
     REQUIRE_THROWS_AS(layered_automaton::exactly(a.graph(), -1), std::invalid_argument);
     REQUIRE_THROWS_AS(layered_automaton::exactly(a.graph(), std::numeric_limits<int>::max()), std::length_error);
 }
+
+TEST_CASE("weighted automata are described for Graphviz", "[weighted][dot]") {
+    weighted_automaton::builder b;
+    auto s = b.add_state(), t = b.add_state();
+    b.set_initial(s, 1.5);
+    b.set_accept(t, 0.25);
+    b.add_transition(s, t, interval_set::range(0, 9), 2.0);
+    b.add_transition(s, t, 1, 0.1);
+    b.add_epsilon(t, s, 0);
+    auto a = b.build();
+    auto dot = a.to_dot();
+    REQUIRE(dot.starts_with("digraph automaton {"));
+    REQUIRE(dot.find("start -> 0 [label=\"/ 1.5\"]") != std::string::npos);
+    REQUIRE(dot.find("1 [shape=doublecircle, label=\"1\\n/ 0.25\"]") != std::string::npos);
+    REQUIRE(dot.find("0 -> 1 [label=\"{0..9} / 2\"]") != std::string::npos);
+    REQUIRE(dot.find("0 -> 1 [label=\"{1} / 0.1\"]") != std::string::npos);
+    REQUIRE(dot.find("1 -> 0 [label=\"&epsilon; / 0\", style=dashed]") != std::string::npos);
+    REQUIRE(dot.find("#d6336c") == std::string::npos);
+    auto best = a.best_path();
+    auto marked = a.to_dot(*best);
+    REQUIRE(marked.find("0 -> 1 [label=\"{1} / 0.1\", color=\"#d6336c\"") != std::string::npos);
+    REQUIRE(marked.find("0 -> 1 [label=\"{0..9} / 2\"];") != std::string::npos);
+    REQUIRE(a.graph().to_dot().find("0 -> 1 [label=\"{1}\"]") != std::string::npos);
+    REQUIRE_THROWS_AS(a.to_dot(std::vector<edge_id>{7}), std::out_of_range);
+    multi_weighted_automaton::builder m(2);
+    auto p = m.add_state(), q = m.add_state();
+    m.set_initial(p);
+    m.set_accept(q, {0, 1});
+    m.add_transition(p, q, 7, {10, 1});
+    auto v = m.build();
+    REQUIRE(v.to_dot().find("0 -> 1 [label=\"{7} / (10, 1)\"]") != std::string::npos);
+    REQUIRE(v.to_dot().find("label=\"1\\n/ (0, 1)\"") != std::string::npos);
+    REQUIRE(v.to_dot(v.pareto_front().paths()[0]).find("#d6336c") != std::string::npos);
+}
