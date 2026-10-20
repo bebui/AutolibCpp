@@ -3,6 +3,7 @@
 
 PROJECT_NAME           = "autolib"
 PROJECT_BRIEF          = "Finite automata over integer symbols, in C++20"
+PROJECT_NUMBER         = $(AUTOLIB_VERSION)
 OUTPUT_DIRECTORY       = build/docs/cpp
 CREATE_SUBDIRS         = NO
 INPUT                  = README.md include/autolib

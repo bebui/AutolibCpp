@@ -144,3 +144,16 @@ jobs:
         run: |
           gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --title "${TAG#v}" --generate-notes \
             --notes "pip install automaton-lib==${TAG#v}"
+
+  documentation:
+    name: Refresh the documentation
+    needs: github-release
+    if: ${{ !cancelled() && needs.github-release.result == 'success' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write  # a workflow may start another one by workflow_dispatch
+    steps:
+      - name: Build and deploy the documentation of the released version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run docs.yml --repo "$GITHUB_REPOSITORY" --ref master
