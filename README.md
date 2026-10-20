@@ -259,6 +259,11 @@ pytest python/tests
 pytest --doctest-glob="*.md" docs/python
 ```
 
+## Releasing
+
+`tools/release.sh 1.2.0` sets the version in `CMakeLists.txt`, commits, tags `v1.2.0` and pushes. The tag makes the
+"Python wheels" workflow build and test the wheels of every platform, then publish them on PyPI.
+
 ## Developing
 
 ```sh
