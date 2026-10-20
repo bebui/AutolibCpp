@@ -64,6 +64,11 @@ jobs:
     permissions:
       id-token: write  # trusted publishing : no token is stored
     steps:
+      - uses: actions/checkout@v4
+      - name: Check that the tag is the version of CMakeLists.txt
+        run: |
+          version=$(sed -nE 's/^    VERSION ([0-9]+\.[0-9]+\.[0-9]+)/\1/p' CMakeLists.txt | head -1)
+          [ "v$version" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME, version $version"; exit 1; }
       - uses: actions/download-artifact@v4
         with:
           path: dist
