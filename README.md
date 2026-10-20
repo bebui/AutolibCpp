@@ -316,4 +316,5 @@ Weighted automata, measured back to back on a loaded machine :
 
 ## License
 
-GNU Lesser General Public License, version 3 or later : see `COPYING.LESSER` and `COPYING`.
+GNU Lesser General Public License, version 3 or later : see `LICENSE`. The LGPL adds permissions to the GNU General
+Public License, version 3, whose text is in `LICENSES/GPL-3.0-or-later.txt`.
