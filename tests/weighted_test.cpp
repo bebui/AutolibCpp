@@ -164,7 +164,7 @@ TEST_CASE("graphs keep parallel edges and their numbers", "[weighted]") {
     source.set_initial(s);
     source.add_transition(s, t, 4);
     source.add_epsilon(s, t);
-    auto snapshot = weighted_automaton::from(source, [](state_id, state_id, const interval_set& labels) { return labels.empty() ? 2.0 : 3.0; });
+    auto snapshot = weighted_automaton::from(source, [](const automaton_edge& e) { return e.epsilon ? 2.0 : 3.0; });
     REQUIRE(snapshot.graph().edge_count() == 2);
     REQUIRE(snapshot.graph().is_epsilon(1));
     REQUIRE(snapshot({4}) == 3);

@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <limits>
 
+#include "autolib/automaton_snapshot.hpp"
+#include "detail/reachability.hpp"
 #include "weighted/graph_data.hpp"
 
 namespace autolib {
@@ -57,53 +59,91 @@ bool check_determinism(const graph_data& g) {
 
 std::vector<bool> graph_data::useful() const {
     std::size_t n = states();
-    std::vector<bool> reached(n), result(n);
-    std::vector<state_id> queue;
-    queue.reserve(n);
+    std::vector<char> reached(n, 0), useful(n, 0);
+    std::vector<state_id> queue(n);
+    std::size_t tail = 0;
     if (initial != no_state) {
-        reached[u(initial)] = true;
-        queue.push_back(initial);
+        reached[u(initial)] = 1;
+        queue[tail++] = initial;
     }
-    for (std::size_t head = 0; head < queue.size(); ++head)
-        for (edge_id e : out(queue[head]))
-            if (!reached[u(target[u(e)])]) {
-                reached[u(target[u(e)])] = true;
-                queue.push_back(target[u(e)]);
-            }
-    queue.clear();
+    detail::propagate<std::uint32_t, state_id>(out_start, out_edges, target, reached, queue, tail);
+    tail = 0;
     for (std::size_t s = 0; s < n; ++s)
         if (accept[s] && reached[s]) {
-            result[s] = true;
-            queue.push_back(static_cast<state_id>(s));
+            useful[s] = 1;
+            queue[tail++] = static_cast<state_id>(s);
         }
-    for (std::size_t head = 0; head < queue.size(); ++head)
-        for (edge_id e : in(queue[head])) {
-            auto p = u(source[u(e)]);
-            if (reached[p] && !result[p]) {
-                result[p] = true;
-                queue.push_back(static_cast<state_id>(p));
+    detail::propagate<std::uint32_t, state_id>(in_start, in_edges, source, useful, queue, tail, detail::any{},
+                                               [&](std::size_t s) { return reached[s] != 0; });
+    return {useful.begin(), useful.end()};
+}
+
+std::vector<bool> graph_data::coaccessible() const {
+    std::size_t n = states();
+    std::vector<char> reached(accept.begin(), accept.end());
+    std::vector<state_id> queue(n);
+    std::size_t tail = 0;
+    for (std::size_t s = 0; s < n; ++s)
+        if (accept[s])
+            queue[tail++] = static_cast<state_id>(s);
+    detail::propagate<std::uint32_t, state_id>(in_start, in_edges, source, reached, queue, tail);
+    return {reached.begin(), reached.end()};
+}
+
+bool graph_data::run(std::span<const symbol> w) const {
+    if (initial == no_state)
+        return false;
+    if (deterministic) {
+        state_id s = initial;
+        for (symbol c : w) {
+            state_id next = no_state;
+            for (edge_id e : out(s))
+                if (accepts(e, c)) {
+                    next = target[u(e)];
+                    break;
+                }
+            if (next == no_state)
+                return false;
+            s = next;
+        }
+        return accept[u(s)] != 0;
+    }
+    // Sets of states, closed under the epsilon edges
+    std::size_t n = states();
+    std::vector<char> current(n, 0), next(n, 0);
+    std::vector<state_id> queue(n);
+    auto epsilon_only = [this](std::size_t e) { return epsilon[e] != 0; };
+    current[u(initial)] = 1;
+    queue[0] = initial;
+    detail::propagate<std::uint32_t, state_id>(out_start, out_edges, target, current, queue, 1, epsilon_only);
+    for (symbol c : w) {
+        std::ranges::fill(next, 0);
+        std::size_t tail = 0;
+        for (std::size_t s = 0; s < n; ++s) {
+            if (!current[s])
+                continue;
+            for (edge_id e : out(static_cast<state_id>(s))) {
+                auto t = target[u(e)];
+                if (!epsilon[u(e)] && !next[u(t)] && accepts(e, c)) {
+                    next[u(t)] = 1;
+                    queue[tail++] = t;
+                }
             }
         }
-    return result;
+        if (tail == 0)
+            return false;
+        detail::propagate<std::uint32_t, state_id>(out_start, out_edges, target, next, queue, tail, epsilon_only);
+        std::swap(current, next);
+    }
+    for (std::size_t s = 0; s < n; ++s)
+        if (current[s] && accept[s])
+            return true;
+    return false;
 }
 
 automaton_graph::automaton_graph() : data_(empty_graph()) {}
 
-automaton_graph automaton_graph::from(const automaton& a) {
-    builder b;
-    for (std::size_t s = 0; s < a.state_count(); ++s)
-        b.add_state(a.is_accept(static_cast<state_id>(s)));
-    if (a.initial() != no_state)
-        b.set_initial(a.initial());
-    for (std::size_t s = 0; s < a.state_count(); ++s) {
-        auto from = static_cast<state_id>(s);
-        for (const auto& t : a.transitions(from))
-            b.add_transition(from, t.target, t.labels);
-        for (state_id t : a.epsilons(from))
-            b.add_epsilon(from, t);
-    }
-    return b.build();
-}
+automaton_graph automaton_graph::from(const automaton& a) { return automaton_snapshot(a).graph(); }
 
 std::size_t automaton_graph::state_count() const noexcept { return data_->states(); }
 std::size_t automaton_graph::edge_count() const noexcept { return data_->edges(); }
@@ -148,6 +188,24 @@ std::span<const state_id> automaton_graph::topological_order() const {
 }
 bool automaton_graph::is_deterministic() const noexcept { return data_->deterministic; }
 std::vector<bool> automaton_graph::useful_states() const { return data_->useful(); }
+std::vector<bool> automaton_graph::coaccessible_states() const { return data_->coaccessible(); }
+bool automaton_graph::run(std::span<const symbol> w) const { return data_->run(w); }
+
+automaton automaton_graph::to_automaton() const {
+    const auto& g = *data_;
+    automaton result;
+    for (std::size_t s = 0; s < g.states(); ++s)
+        result.add_state(g.accept[s] != 0);
+    if (g.initial != no_state)
+        result.set_initial(g.initial);
+    for (std::size_t e = 0; e < g.edges(); ++e) {
+        if (g.epsilon[e])
+            result.add_epsilon(g.source[e], g.target[e]);
+        else
+            result.add_transition(g.source[e], g.target[e], g.labels(static_cast<edge_id>(e)));
+    }
+    return result;
+}
 
 void automaton_graph::builder::check(state_id s) const {
     if (s < 0 || u(s) >= accept_.size())

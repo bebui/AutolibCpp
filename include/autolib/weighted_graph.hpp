@@ -16,6 +16,7 @@
 #pragma once
 
 #include <cstdint>
+#include <initializer_list>
 #include <memory>
 #include <span>
 #include <vector>
@@ -79,6 +80,15 @@ public:
     [[nodiscard]] bool is_deterministic() const noexcept;
     /// Whether each state is both reachable from the initial state and able to reach an accepting state.
     [[nodiscard]] std::vector<bool> useful_states() const;
+    /// Whether each state can reach an accepting state, reachable from the initial state or not.
+    [[nodiscard]] std::vector<bool> coaccessible_states() const;
+
+    /// Whether an accepting path reads a word : the language of the graph, independent of any weighting.
+    [[nodiscard]] bool run(std::span<const symbol> w) const;
+    [[nodiscard]] bool run(std::initializer_list<symbol> w) const { return run(std::span(w.begin(), w.size())); }
+    /// A new automaton with the same states and language. Parallel edges merge : the distinct paths, and the
+    /// costs of any weighting, are forgotten.
+    [[nodiscard]] automaton to_automaton() const;
 
     /// Whether two handles designate the same graph : weightings require it to be combined.
     [[nodiscard]] bool same_as(const automaton_graph& other) const noexcept { return data_ == other.data_; }

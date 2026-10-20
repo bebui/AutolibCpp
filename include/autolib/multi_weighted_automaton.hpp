@@ -94,6 +94,11 @@ public:
     /// \throws std::invalid_argument if the dimension is zero, a weight is not finite or the counts are wrong
     [[nodiscard]] static multi_weighted_automaton of(automaton_graph graph, std::size_t dimensions, std::vector<double> edge_weights,
                                                      std::vector<double> initial = {}, std::vector<double> finals = {});
+    /// The weighting of an automaton by vectors, one cost function per dimension : `a.multi_weighted(dimensions)`.
+    [[nodiscard]] static multi_weighted_automaton from(const automaton& a, std::span<const edge_cost> dimensions);
+    [[nodiscard]] static multi_weighted_automaton from(const automaton& a, std::initializer_list<edge_cost> dimensions) {
+        return from(a, std::span(dimensions.begin(), dimensions.size()));
+    }
     /// The scalar weightings of one graph as the dimensions of a vector : the costs of a path stay correlated.
     /// \throws std::invalid_argument if there is no weighting or their graphs differ
     [[nodiscard]] static multi_weighted_automaton from_weightings(std::span<const weighted_automaton> weightings);
@@ -109,6 +114,11 @@ public:
 
     [[nodiscard]] const automaton_graph& graph() const noexcept { return graph_; }
     [[nodiscard]] std::size_t dimensions() const noexcept;
+    /// Whether an accepting path reads a word, whatever its costs.
+    [[nodiscard]] bool run(std::span<const symbol> w) const { return graph_.run(w); }
+    [[nodiscard]] bool run(std::initializer_list<symbol> w) const { return graph_.run(w); }
+    /// A new automaton recognizing the same words, without the costs nor the distinct parallel paths.
+    [[nodiscard]] automaton to_automaton() const { return graph_.to_automaton(); }
     [[nodiscard]] double weight(edge_id e, std::size_t dimension) const;
     /// The vector of an edge.
     [[nodiscard]] std::span<const double> weights(edge_id e) const;

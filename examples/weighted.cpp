@@ -35,6 +35,16 @@ int main() {
     std::cout << "minimal deterministic : " << d.graph().state_count() << " states, cost of 1 0 0 : "
               << d.compile()({1, 0, 0}) << '\n';
 
+    // An automaton weighted directly, and several costs sharing one snapshot
+    using namespace autolib::literals;
+    auto source = "12+"_re;
+    std::cout << "12+ at 2 per symbol, 1 2 2 : " << source.weighted([](const automaton_edge&) { return 2.0; })({1, 2, 2}) << '\n';
+    auto snapshot = source.snapshot();
+    auto price = snapshot.weighted([](const automaton_edge& e) { return e.epsilon ? 0.0 : 2.0; });
+    auto both = snapshot.multi_weighted({[](const automaton_edge&) { return 2.0; }, [](const automaton_edge&) { return 5.0; }});
+    std::cout << "shared graph : " << price.graph().same_as(both.graph()) << ", 1 2 accepted : " << price.run({1, 2})
+              << ", same language : " << (price.to_automaton() == source) << '\n';
+
     multi_weighted_automaton::builder m(2);    // time and money
     auto p = m.add_state(), q = m.add_state();
     m.set_initial(p);

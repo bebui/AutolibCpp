@@ -7,6 +7,7 @@
 #pragma once
 
 #include "autolib/automaton.hpp"
+#include "autolib/automaton_snapshot.hpp"
 #include "autolib/big_integer.hpp"
 #include "autolib/compiled_dfa.hpp"
 #include "autolib/compiled_weighted_dfa.hpp"

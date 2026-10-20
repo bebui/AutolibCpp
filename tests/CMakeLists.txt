@@ -15,6 +15,7 @@ add_executable(autolib_tests
     automaton_test.cpp
     big_integer_test.cpp
     dyadic_test.cpp
+    integration_test.cpp
     interval_set_test.cpp
     java_oracle_test.cpp
     java_weighted_test.cpp

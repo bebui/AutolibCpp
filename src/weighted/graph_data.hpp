@@ -73,6 +73,8 @@ struct graph_data {
             throw std::invalid_argument("Acyclic graph required");
     }
     [[nodiscard]] std::vector<bool> useful() const;
+    [[nodiscard]] std::vector<bool> coaccessible() const;
+    [[nodiscard]] bool run(std::span<const symbol> w) const;
 };
 
 inline std::size_t u(std::int64_t i) noexcept { return static_cast<std::size_t>(i); }

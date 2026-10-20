@@ -8,6 +8,7 @@
 
 #include <compare>
 #include <cstdint>
+#include <functional>
 #include <initializer_list>
 #include <iosfwd>
 #include <optional>
@@ -40,6 +41,23 @@ struct transition {
 
     friend bool operator==(const transition&, const transition&) = default;
 };
+
+/// A transition of an automaton as the cost functions of its weightings see it : a transition reading
+/// symbols, or an epsilon transition.
+struct automaton_edge {
+    state_id from;
+    state_id to;
+    bool epsilon;         ///< an epsilon transition, reading nothing
+    interval_set labels;  ///< the symbols read, empty for an epsilon transition
+    std::size_t index;    ///< its rank among the transitions(from), or among the epsilons(from)
+};
+
+/// The cost of a transition, for weighting an automaton.
+using edge_cost = std::function<double(const automaton_edge&)>;
+
+class automaton_snapshot;
+class multi_weighted_automaton;
+class weighted_automaton;
 
 /// Algorithms computing the minimal deterministic automaton.
 enum class minimization {
@@ -212,6 +230,21 @@ public:
     /// Partial order of inclusion : `unordered` when neither language contains the other.
     [[nodiscard]] friend std::partial_ordering operator<=>(const automaton& a, const automaton& b) { return a.compare(b); }
     [[nodiscard]] std::partial_ordering compare(const automaton& other) const;
+
+    // ------------------------------------------------------------------ weightings
+
+    // Defined with the weighted automata : include autolib/automaton_snapshot.hpp, or autolib/autolib.hpp.
+
+    /// The structure of this automaton captured once, to weight it several times on the same graph. The
+    /// snapshot does not follow the later changes of the automaton.
+    [[nodiscard]] automaton_snapshot snapshot() const;
+    /// This automaton weighted by a cost per transition, its initial and final costs being 0.
+    /// \throws std::invalid_argument if a cost is not finite
+    [[nodiscard]] weighted_automaton weighted(const edge_cost& cost) const;
+    /// This automaton weighted by vectors, one cost function per dimension : the costs of a path stay together.
+    /// \throws std::invalid_argument without dimension, or if a cost is not finite
+    [[nodiscard]] multi_weighted_automaton multi_weighted(std::span<const edge_cost> dimensions) const;
+    [[nodiscard]] multi_weighted_automaton multi_weighted(std::initializer_list<edge_cost> dimensions) const;
 
     // ------------------------------------------------------------------ output
 

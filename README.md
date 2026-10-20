@@ -169,6 +169,23 @@ auto both = a | a.star();                              // least cost over both
 double fast = d.compile()({1, 0, 0});                  // evaluator of a deterministic automaton
 ```
 
+An automaton is weighted directly, and a snapshot lets several weightings share the same graph :
+
+```cpp
+auto source = "12+"_re;
+auto direct = source.weighted([](const automaton_edge&) { return 2.0; });
+double six = direct({1, 2, 2});                        // 6
+
+auto snapshot = source.snapshot();                     // the structure, captured once
+auto price = snapshot.weighted([](const automaton_edge& e) { return e.epsilon ? 0.0 : 2.0; });
+auto duration = snapshot.weighted([](const automaton_edge&) { return 5.0; });
+auto both = snapshot.multi_weighted({[](const automaton_edge&) { return 2.0; },
+                                     [](const automaton_edge&) { return 5.0; }});
+bool shared = price.graph().same_as(both.graph());     // true : same edges, same numbers
+bool member = price.run({1, 2});                       // the language, whatever the costs
+autolib::automaton language = price.to_automaton();    // back to an automaton, without the costs
+```
+
 Several costs at once :
 
 ```cpp

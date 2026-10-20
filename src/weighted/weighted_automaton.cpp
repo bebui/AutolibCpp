@@ -60,16 +60,6 @@ weighted_automaton weighted_automaton::of(automaton_graph graph, std::vector<dou
     return {std::move(graph), std::make_shared<const weights_data>(std::move(w))};
 }
 
-weighted_automaton weighted_automaton::from(const automaton& a,
-                                            const std::function<double(state_id, state_id, const interval_set&)>& weight) {
-    auto graph = automaton_graph::from(a);
-    const auto& g = data(graph);
-    std::vector<double> costs(g.edges());
-    for (std::size_t e = 0; e < costs.size(); ++e)
-        costs[e] = weight(g.source[e], g.target[e], g.labels(static_cast<edge_id>(e)));
-    return of(std::move(graph), std::move(costs));
-}
-
 double weighted_automaton::weight(edge_id e) const {
     data(graph_).check_edge(e);
     return weights_->edges[u(e)];

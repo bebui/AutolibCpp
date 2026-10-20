@@ -215,10 +215,8 @@ public:
     /// \throws std::invalid_argument if a weight is not finite or the numbers of weights are wrong
     [[nodiscard]] static weighted_automaton of(automaton_graph graph, std::vector<double> edge_weights,
                                                double initial_weight = 0, std::vector<double> final_weights = {});
-    /// The weighting of the graph of an automaton, `weight(from, to, labels)` giving the cost of each edge; the
-    /// labels of an epsilon edge are empty.
-    [[nodiscard]] static weighted_automaton from(const automaton& a,
-                                                 const std::function<double(state_id, state_id, const interval_set&)>& weight);
+    /// The weighting of an automaton by a cost per transition : `a.weighted(cost)`.
+    [[nodiscard]] static weighted_automaton from(const automaton& a, const edge_cost& cost);
 
     [[nodiscard]] const automaton_graph& graph() const noexcept { return graph_; }
     [[nodiscard]] double weight(edge_id e) const;
@@ -228,6 +226,12 @@ public:
     [[nodiscard]] double final_weight(state_id s) const;
     /// Another weighting of the same graph, keeping the initial and final costs.
     [[nodiscard]] weighted_automaton with_weights(std::vector<double> edge_weights) const;
+
+    /// Whether an accepting path reads a word, whatever its costs, overflows and negative cycles.
+    [[nodiscard]] bool run(std::span<const symbol> w) const { return graph_.run(w); }
+    [[nodiscard]] bool run(std::initializer_list<symbol> w) const { return graph_.run(w); }
+    /// A new automaton recognizing the same words, without the costs nor the distinct parallel paths.
+    [[nodiscard]] automaton to_automaton() const { return graph_.to_automaton(); }
 
     /// The cost of a word : +infinity if it is not accepted, -infinity if unbounded.
     [[nodiscard]] double cost(std::span<const symbol> w) const;

@@ -42,6 +42,7 @@ add_library(autolib
     src/weighted/layered.cpp
     src/weighted/multi.cpp
     src/weighted/paths.cpp
+    src/weighted/snapshot.cpp
     src/weighted/transformations.cpp
     src/weighted/weighted_automaton.cpp
     src/words.cpp)
