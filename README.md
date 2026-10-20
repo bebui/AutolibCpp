@@ -261,8 +261,12 @@ pytest --doctest-glob="*.md" docs/python
 
 ## Releasing
 
-`tools/release.sh 1.2.0` sets the version in `CMakeLists.txt`, commits, tags `v1.2.0` and pushes. The tag makes the
-"Python wheels" workflow build and test the wheels of every platform, then publish them on PyPI.
+From GitHub : Actions → "Python wheels" → Run workflow, with the version `1.2.0`. The workflow sets it in
+`CMakeLists.txt`, commits, tags `v1.2.0`, builds and tests the wheels of every platform, publishes them on PyPI and
+creates the GitHub release.
+
+From a terminal : `tools/release.sh 1.2.0` sets the version, commits, tags and pushes; the tag runs the same build
+and publication.
 
 ## Developing
 
