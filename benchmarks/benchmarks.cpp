@@ -134,4 +134,81 @@ void sampler_draw_1000(benchmark::State& state) {
 }
 BENCHMARK(sampler_draw_1000)->Unit(benchmark::kMicrosecond);
 
+// Weighted automata
+
+void weighted_cost(benchmark::State& state) {
+    auto a = inputs::weighted(11, 300, 4, 3, 1, 0, false);
+    std::vector<word> words;
+    for (int i = 0; i < 1000; ++i)
+        words.push_back(inputs::random_word(100 + i, 30, 4));
+    auto evaluator = a.evaluator();
+    for (auto _ : state) {
+        double total = 0;
+        for (const auto& w : words)
+            total += evaluator.cost(w);
+        benchmark::DoNotOptimize(total);
+    }
+}
+BENCHMARK(weighted_cost)->Unit(benchmark::kMillisecond);
+
+void weighted_dijkstra(benchmark::State& state) {
+    auto a = inputs::weighted(12, 200000, 4, 3, 0, 0, false);
+    for (auto _ : state)
+        benchmark::DoNotOptimize(shortest_paths(a, false).optimal_cost());
+}
+BENCHMARK(weighted_dijkstra)->Unit(benchmark::kMillisecond);
+
+void weighted_bellman_exact(benchmark::State& state) {
+    auto a = inputs::weighted(13, 400, 4, 3, 0, -2, false);
+    for (auto _ : state)
+        benchmark::DoNotOptimize(bellman_ford(a).optimal_cost());
+}
+BENCHMARK(weighted_bellman_exact)->Unit(benchmark::kMillisecond);
+
+void weighted_determinize(benchmark::State& state) {
+    auto a = inputs::weighted(14, 40, 2, 3, 0, 0, true);
+    for (auto _ : state)
+        benchmark::DoNotOptimize(a.determinize(100000));
+    state.counters["states"] = static_cast<double>(a.determinize(100000).graph().state_count());
+}
+BENCHMARK(weighted_determinize)->Unit(benchmark::kMillisecond);
+
+void weighted_minimize(benchmark::State& state) {
+    auto a = inputs::weighted_dfa(15, 2000, 4, 0);
+    for (auto _ : state)
+        benchmark::DoNotOptimize(a.minimize());
+    state.counters["states"] = static_cast<double>(a.minimize().graph().state_count());
+}
+BENCHMARK(weighted_minimize)->Unit(benchmark::kMillisecond);
+
+void weighted_k_best_paths(benchmark::State& state) {
+    auto a = inputs::weighted(16, 200, 4, 3, 0, 0, false);
+    for (auto _ : state)
+        benchmark::DoNotOptimize(a.k_best_paths(2000));
+}
+BENCHMARK(weighted_k_best_paths)->Unit(benchmark::kMillisecond);
+
+void weighted_k_best_words(benchmark::State& state) {
+    auto a = inputs::weighted(17, 50, 4, 3, 0, 0, false);
+    for (auto _ : state)
+        benchmark::DoNotOptimize(a.k_best_words(500));
+}
+BENCHMARK(weighted_k_best_words)->Unit(benchmark::kMillisecond);
+
+void weighted_pareto(benchmark::State& state) {
+    auto a = inputs::multi_dag(18, 60, 4);
+    for (auto _ : state)
+        benchmark::DoNotOptimize(a.pareto_front());
+    state.counters["front"] = static_cast<double>(a.pareto_front().size());
+}
+BENCHMARK(weighted_pareto)->Unit(benchmark::kMillisecond);
+
+void weighted_compiled(benchmark::State& state) {
+    auto compiled = inputs::weighted_dfa(19, 1000, 4, 0).compile();
+    auto w = inputs::random_word(20, 1000000, 4);
+    for (auto _ : state)
+        benchmark::DoNotOptimize(compiled.cost(w));
+}
+BENCHMARK(weighted_compiled)->Unit(benchmark::kMillisecond);
+
 }  // namespace
