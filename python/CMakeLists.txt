@@ -12,8 +12,6 @@ nanobind_add_module(_autolib STABLE_ABI NB_STATIC LTO
 target_link_libraries(_autolib PRIVATE autolib::autolib)
 target_compile_features(_autolib PRIVATE cxx_std_20)
 
-# Type stubs, for completion and type checkers
-nanobind_add_stub(_autolib_stub MODULE _autolib OUTPUT _autolib.pyi PYTHON_PATH $<TARGET_FILE_DIR:_autolib> DEPENDS _autolib)
-
+# The type stubs (autolib/_autolib.pyi) are kept in the sources : generating them imports the module, which a
+# cross-compilation cannot. Regenerate them with : python -m nanobind.stubgen -m autolib._autolib -o python/autolib/_autolib.pyi
 install(TARGETS _autolib LIBRARY DESTINATION autolib)
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/_autolib.pyi" DESTINATION autolib)

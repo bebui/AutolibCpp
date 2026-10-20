@@ -42,8 +42,12 @@ jobs:
         run: |
           python -m pip install build
           python -m build --sdist
-          python -m pip install dist/*.tar.gz pytest numpy
+          python -m pip install dist/*.tar.gz pytest numpy nanobind==3.1.0
           cd python/tests && python -m pytest -q
+      - name: Check that the type stubs match the module
+        run: |
+          cd /tmp && python -m nanobind.stubgen -m autolib._autolib -o stubs.pyi
+          diff -u "$GITHUB_WORKSPACE/python/autolib/_autolib.pyi" stubs.pyi
       - uses: actions/upload-artifact@v4
         with:
           name: sdist
