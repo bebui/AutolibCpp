@@ -122,13 +122,12 @@ public:
             return *this;
         }
         void operator++(int) { owner_->advance(); }
-        [[nodiscard]] friend bool operator==(const iterator& it, std::default_sentinel_t) noexcept {
-            return it.owner_ == nullptr || !it.owner_->current_;
-        }
+        [[nodiscard]] friend bool operator==(const iterator& it, std::default_sentinel_t) noexcept { return it.done(); }
 
     private:
         friend class lazy_sequence;
         explicit iterator(lazy_sequence* owner) : owner_(owner) {}
+        [[nodiscard]] bool done() const noexcept { return owner_ == nullptr || !owner_->current_; }
         lazy_sequence* owner_ = nullptr;
     };
 
