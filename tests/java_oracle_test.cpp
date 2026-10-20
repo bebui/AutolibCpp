@@ -57,6 +57,9 @@ TEST_CASE("the results of the Java library are reproduced", "[java]") {
             REQUIRE((shortest ? static_cast<long>(shortest->size()) : -1L) == std::stol(f[5]));
             if (shortest)
                 REQUIRE(dfa(*shortest));
+            auto counts = split(f[6], ',');
+            for (std::size_t l = 0; l < counts.size(); ++l)
+                REQUIRE(count_words(nfa, static_cast<int>(l)) == big_integer(counts[l]));
         } else if (f[0] == "W") {
             INFO(expressions.back() << " on " << f[1]);
             auto w = parse_word(f[1]);
@@ -84,4 +87,24 @@ TEST_CASE("the results of the Java library are reproduced", "[java]") {
         ++checks;
     }
     REQUIRE(checks > 8000);
+}
+
+TEST_CASE("huge counts of words agree with the Java library", "[java][words]") {
+    std::ifstream in(AUTOLIB_TEST_DATA "/java_counts.tsv");
+    REQUIRE(in.good());
+    const int lengths[] = {0, 1, 5, 64, 65, 100, 257};
+    std::size_t expressions = 0;
+    for (std::string line; std::getline(in, line); ++expressions) {
+        auto f = split(line, '\t');
+        REQUIRE(f.size() == 8);
+        INFO(f[0]);
+        auto nfa = automaton::nfa_from_regex(f[0]);
+        for (std::size_t i = 0; i < 7; ++i) {
+            INFO("length " << lengths[i]);
+            big_integer expected(f[i + 1]);
+            REQUIRE(count_words(nfa, lengths[i]) == expected);
+            REQUIRE(word_sampler(nfa, lengths[i]).count() == expected);
+        }
+    }
+    REQUIRE(expressions == 9);
 }

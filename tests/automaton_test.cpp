@@ -146,3 +146,19 @@ TEST_CASE("printing", "[automaton]") {
     REQUIRE(a.to_string() == "0 -{1..2}-> 1\n");
     REQUIRE(a.to_dot().find("doublecircle") != std::string::npos);
 }
+
+TEST_CASE("prefix operators repeat", "[automaton]") {
+    auto a = "01"_re, b = "2"_re;
+    REQUIRE(*a == a.star());
+    REQUIRE(+a == a.plus());
+    REQUIRE(*a == "(01)*"_re);
+    REQUIRE(+(a | b) == "(01|2)+"_re);
+    // Unary operators bind tighter than the binary ones
+    REQUIRE(*a + b == "(01)*2"_re);
+    REQUIRE(a + +b == "012+"_re);
+    REQUIRE((*a | +b) == "(01)*|2+"_re);
+    REQUIRE(**a == *a);
+    REQUIRE(*+a == *a);
+    REQUIRE(*automaton{} == "()"_re);
+    REQUIRE(+automaton{} == automaton{});
+}
