@@ -61,7 +61,8 @@ enum class minimization {
 /// auto b = "1(0|1)*"_re;
 /// auto c = (a | b) & ~"11"_re;    // union, intersection, complement
 /// auto d = a + b;                 // concatenation
-/// auto e = a.star();              // Kleene star
+/// auto e = *a;                    // Kleene star, also a.star()
+/// auto f = +(a | b);              // one or more repetitions, also (a | b).plus()
 /// bool same = (a - b) == (a & ~b); // equality of languages
 /// bool included = a <= (a | b);   // inclusion of languages
 /// bool accepted = a({1, 1, 0});   // membership
@@ -166,6 +167,11 @@ public:
     [[nodiscard]] friend automaton operator~(const automaton& a) { return a.complement(); }
     /// Concatenation : minimal DFA when both operands are deterministic.
     [[nodiscard]] friend automaton operator+(const automaton& a, const automaton& b) { return a.concatenate(b); }
+    /// Kleene star, as star() : the prefix form of `r*`. Binding tighter than the binary operators, `*a + b`
+    /// is the concatenation of `a*` and `b`.
+    [[nodiscard]] friend automaton operator*(const automaton& a) { return a.star(); }
+    /// One or more repetitions, as plus() : the prefix form of `r+`.
+    [[nodiscard]] friend automaton operator+(const automaton& a) { return a.plus(); }
     automaton& operator|=(const automaton& b) { return *this = *this | b; }
     automaton& operator&=(const automaton& b) { return *this = *this & b; }
     automaton& operator-=(const automaton& b) { return *this = *this - b; }

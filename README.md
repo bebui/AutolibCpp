@@ -15,7 +15,7 @@ auto b = "(0|1)*11(0|1)*"_re;
 
 auto c = (a | b) & ~"11"_re;         // union, intersection, complement
 auto d = a - b;                      // difference
-auto e = a + b.star();               // concatenation, Kleene star
+auto e = a + *b;                     // concatenation, Kleene star
 bool same = (a - b) == (a & ~b);     // equality of languages : true
 bool included = (a & b) <= a;        // inclusion of languages : true
 bool accepted = a({1, 0, 1, 1});     // membership : true
@@ -53,6 +53,7 @@ auto w = d.shortest_word();          // std::optional<word> : {0, 0, 0}
 | `a - b`          | difference                                           | minimal DFA                          |
 | `~a`             | complement                                           | complete DFA                         |
 | `a + b`          | concatenation                                        | minimal DFA if both are deterministic |
+| `*a`, `+a`       | Kleene star, one or more repetitions : prefix forms of `r*` and `r+` | minimal DFA if `a` is deterministic |
 | `a.star()`, `a.plus()`, `a.optional()`, `a.repeat(n, m)` | repetitions          | minimal DFA if `a` is deterministic   |
 | `a == b`         | same language                                        | `bool`                               |
 | `a <= b`, `a < b`, `a >= b`, `a > b` | inclusion of languages           | `bool`                               |
