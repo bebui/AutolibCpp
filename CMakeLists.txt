@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(autolib
-    VERSION 1.0.0
+    VERSION 1.1.0
     DESCRIPTION "Finite automata over integer symbols, with fast algorithms and natural operators"
     HOMEPAGE_URL "https://github.com/bebui/AutolibCpp"
     LANGUAGES CXX)
