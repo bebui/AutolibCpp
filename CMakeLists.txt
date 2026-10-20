@@ -25,6 +25,7 @@ configure_file(include/autolib/version.hpp.in "${PROJECT_BINARY_DIR}/include/aut
 
 add_library(autolib
     src/automaton.cpp
+    src/big_integer.cpp
     src/compiled_dfa.cpp
     src/determinize.cpp
     src/interval_set.cpp
@@ -32,7 +33,8 @@ add_library(autolib
     src/minimize.cpp
     src/reduce.cpp
     src/regex.cpp
-    src/searcher.cpp)
+    src/searcher.cpp
+    src/words.cpp)
 add_library(autolib::autolib ALIAS autolib)
 
 target_compile_features(autolib PUBLIC cxx_std_20)

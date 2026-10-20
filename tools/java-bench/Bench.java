@@ -138,5 +138,9 @@ public final class Bench {
         Searcher searcher = Automaton.dfaFromString("01+2").searcher();
         int[] text = randomWord(4, 1_000_000, 4);
         measure("search_all", f, () -> searcher.findAll(text).size());
+        measure("count_words/64_bits", f, () -> dfa.countWords(60));
+        measure("count_words/2000_bits", f, () -> dfa.countWords(2000));
+        Random random = new Random(3);
+        measure("random_word/1000", f, () -> dfa.randomWord(1000, random));
     }
 }
