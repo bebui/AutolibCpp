@@ -28,6 +28,7 @@ jobs:
         run: python -m sphinx -b html -W --keep-going docs/python site/python
       - name: C++ documentation
         run: |
+          mkdir -p build/docs/cpp
           DOXYGEN_AWESOME=build/doxygen-awesome doxygen docs/Doxyfile
           cp -r build/docs/cpp site/cpp
           cp docs/index.html site/
