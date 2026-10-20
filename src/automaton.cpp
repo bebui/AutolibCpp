@@ -9,6 +9,7 @@
 #include <stdexcept>
 
 #include "detail/access.hpp"
+#include "detail/reachability.hpp"
 #include "detail/algorithms.hpp"
 
 namespace autolib {
@@ -151,33 +152,25 @@ void automaton::trim() {
         for (state_id t : states_[u(s)].eps)
             visit(t);
     }
-    // Backward reachability from the reached accepting states
-    std::vector<std::vector<state_id>> preds(n);
-    for (std::size_t s = 0; s < n; ++s) {
+    // Backward reachability from the reached accepting states, on compressed predecessor rows
+    detail::predecessors preds(n, [&](std::size_t s, auto&& f) {
         if (!reached[s])
-            continue;
+            return;
         for (const auto& t : states_[s].out)
-            preds[u(t.target)].push_back(static_cast<state_id>(s));
+            f(t.target);
         for (state_id t : states_[s].eps)
-            preds[u(t)].push_back(static_cast<state_id>(s));
-    }
+            f(t);
+    });
     std::vector<char> useful(n, 0);
+    std::vector<state_id> queue(n);
+    std::size_t tail = 0;
     for (std::size_t s = 0; s < n; ++s) {
         if (reached[s] && states_[s].accept) {
             useful[s] = 1;
-            stack.push_back(static_cast<state_id>(s));
+            queue[tail++] = static_cast<state_id>(s);
         }
     }
-    while (!stack.empty()) {
-        state_id s = stack.back();
-        stack.pop_back();
-        for (state_id p : preds[u(s)]) {
-            if (!useful[u(p)]) {
-                useful[u(p)] = 1;
-                stack.push_back(p);
-            }
-        }
-    }
+    detail::propagate<std::uint32_t, state_id>(preds.start, {}, preds.sources, useful, queue, tail);
     if (!useful[u(initial_)]) {
         states_.assign(1, state_data{});
         initial_ = 0;

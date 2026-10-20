@@ -194,36 +194,25 @@ big_integer big_integer::from_double(double value) {
     return x;
 }
 
-big_integer::big_integer(const big_integer& other) : size_(other.size_), negative_(other.negative_) {
-    if (other.size_ <= 1) {
-        small_ = other.small_value();
-    } else {
-        heap_ = new limb[other.size_];
-        capacity_ = other.size_;
-        std::copy_n(other.heap_, other.size_, heap_);
-    }
+void big_integer::copy_heap(const big_integer& other) {
+    heap_ = new limb[other.size_];
+    capacity_ = other.size_;
+    std::copy_n(other.heap_, other.size_, heap_);
 }
 
-big_integer& big_integer::operator=(const big_integer& other) {
-    if (this == &other)
-        return *this;
+void big_integer::assign_heap(const big_integer& other) {
     if (other.size_ > capacity_) {
         big_integer copy(other);
-        return *this = std::move(copy);
+        *this = std::move(copy);
+        return;
     }
     std::copy_n(other.data(), other.size_, data());
     size_ = other.size_;
     negative_ = other.negative_;
-    return *this;
 }
 
-void big_integer::release() noexcept {
-    if (capacity_ > 1)
-        delete[] heap_;
-    small_ = 0;
-    size_ = 0;
-    capacity_ = 1;
-    negative_ = false;
+void big_integer::free_heap() noexcept {
+    delete[] heap_;
 }
 
 int big_integer::compare_magnitudes(const big_integer& a, const big_integer& b) noexcept {
@@ -285,7 +274,7 @@ std::ostream& operator<<(std::ostream& out, const big_integer& x) {
     return out << x.to_string();
 }
 
-std::size_t big_integer::hash() const noexcept {
+std::size_t big_integer::hash_limbs() const noexcept {
     std::uint64_t h = negative_ ? 0x9e3779b97f4a7c15ULL : 0;
     for (limb x : magnitude()) {
         h ^= x + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
@@ -293,31 +282,16 @@ std::size_t big_integer::hash() const noexcept {
     return static_cast<std::size_t>(h);
 }
 
-big_integer& big_integer::operator+=(const big_integer& other) {
-    if (this == &other)
-        return *this <<= 1;
-    // Same sign within a limb : no allocation
-    if (size_ <= 1 && other.size_ <= 1 && negative_ == other.negative_) {
-        limb a = small_value(), b = other.small_value(), s = a + b;
-        if (s >= a) {
-            if (s != 0)
-                data()[0] = s;
-            size_ = s != 0 ? 1 : 0;
-            negative_ = negative_ && s != 0;
+big_integer& big_integer::add_slow(const big_integer& other, bool subtract) {
+    if (this == &other) {
+        if (subtract) {
+            size_ = 0;
+            negative_ = false;
             return *this;
         }
+        return *this <<= 1;
     }
-    access::add_signed(*this, other.data(), other.size_, other.negative_);
-    return *this;
-}
-
-big_integer& big_integer::operator-=(const big_integer& other) {
-    if (this == &other) {
-        size_ = 0;
-        negative_ = false;
-        return *this;
-    }
-    access::add_signed(*this, other.data(), other.size_, !other.negative_);
+    access::add_signed(*this, other.data(), other.size_, other.negative_ != subtract);
     return *this;
 }
 

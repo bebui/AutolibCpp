@@ -6,6 +6,7 @@
 #pragma once
 
 #include <autolib/autolib.hpp>
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <set>
@@ -106,6 +107,67 @@ inline autolib::word random_word(std::int64_t seed, int length, int sigma) {
     for (auto& s : w)
         s = r.next_int(sigma);
     return w;
+}
+
+/// A weighted automaton : `per_state` transitions and `epsilons` epsilon edges leaving each state, toward any
+/// state or, for a DAG, one of the 4 next states; weights in quarters, from low / 4 to (low + 16) / 4.
+inline autolib::weighted_automaton weighted(std::int64_t seed, int n, int sigma, int per_state, int epsilons, int low, bool dag) {
+    java_random r(seed);
+    autolib::weighted_automaton::builder b;
+    for (int s = 0; s < n; ++s)
+        b.add_state();
+    b.set_initial(0);
+    for (int s = 0; s < n; ++s)
+        if (r.next_int(4) == 0 || (dag && s == n - 1))
+            b.set_accept(s, r.next_int(8) / 4.0);
+    for (int s = 0; s < (dag ? n - 1 : n); ++s) {
+        auto target = [&] { return dag ? s + 1 + r.next_int(std::min(4, n - 1 - s)) : r.next_int(n); };
+        for (int j = 0; j < per_state; ++j) {
+            int v = r.next_int(sigma);
+            int t = target();
+            b.add_transition(s, t, v, (r.next_int(17) + low) / 4.0);
+        }
+        for (int j = 0; j < epsilons; ++j) {
+            int t = target();
+            b.add_epsilon(s, t, r.next_int(9) / 4.0);
+        }
+    }
+    return b.build();
+}
+
+/// A complete weighted DFA over sigma symbols, weights in quarters from low / 4 to (low + 16) / 4.
+inline autolib::weighted_automaton weighted_dfa(std::int64_t seed, int n, int sigma, int low) {
+    java_random r(seed);
+    autolib::weighted_automaton::builder b;
+    for (int s = 0; s < n; ++s)
+        b.add_state();
+    b.set_initial(0);
+    for (int s = 0; s < n; ++s)
+        if (r.next_int(4) == 0)
+            b.set_accept(s, r.next_int(8) / 4.0);
+    for (int s = 0; s < n; ++s)
+        for (int c = 0; c < sigma; ++c) {
+            int t = r.next_int(n);
+            b.add_transition(s, t, c, (r.next_int(17) + low) / 4.0);
+        }
+    return b.build();
+}
+
+/// A DAG weighted by pairs of integers, `per_state` edges reading 0 toward one of the 4 next states.
+inline autolib::multi_weighted_automaton multi_dag(std::int64_t seed, int n, int per_state) {
+    java_random r(seed);
+    autolib::multi_weighted_automaton::builder b(2);
+    for (int s = 0; s < n; ++s)
+        b.add_state();
+    b.set_initial(0);
+    b.set_accept(n - 1);
+    for (int s = 0; s < n - 1; ++s)
+        for (int j = 0; j < per_state; ++j) {
+            int t = s + 1 + r.next_int(std::min(4, n - 1 - s));
+            double x = r.next_int(9), y = r.next_int(9);
+            b.add_transition(s, t, 0, {x, y});
+        }
+    return b.build();
 }
 
 }  // namespace inputs

@@ -28,12 +28,23 @@ add_library(autolib
     src/big_integer.cpp
     src/compiled_dfa.cpp
     src/determinize.cpp
+    src/dyadic.cpp
     src/interval_set.cpp
     src/languages.cpp
     src/minimize.cpp
     src/reduce.cpp
     src/regex.cpp
     src/searcher.cpp
+    src/weighted/compiled.cpp
+    src/weighted/enumeration.cpp
+    src/weighted/exact_costs.cpp
+    src/weighted/graph.cpp
+    src/weighted/layered.cpp
+    src/weighted/multi.cpp
+    src/weighted/paths.cpp
+    src/weighted/snapshot.cpp
+    src/weighted/transformations.cpp
+    src/weighted/weighted_automaton.cpp
     src/words.cpp)
 add_library(autolib::autolib ALIAS autolib)
 

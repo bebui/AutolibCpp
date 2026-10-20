@@ -14,12 +14,18 @@ include(Catch)
 add_executable(autolib_tests
     automaton_test.cpp
     big_integer_test.cpp
+    dyadic_test.cpp
+    integration_test.cpp
     interval_set_test.cpp
     java_oracle_test.cpp
+    java_weighted_test.cpp
     language_test.cpp
+    multi_weighted_test.cpp
     random_test.cpp
     regex_test.cpp
     search_test.cpp
+    weighted_cyclic_test.cpp
+    weighted_test.cpp
     words_test.cpp)
 target_link_libraries(autolib_tests PRIVATE autolib::autolib autolib_options Catch2::Catch2WithMain)
 target_compile_definitions(autolib_tests PRIVATE AUTOLIB_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")

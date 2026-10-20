@@ -6,6 +6,7 @@
 #include "autolib/automaton.hpp"
 #include "detail/access.hpp"
 #include "detail/partition.hpp"
+#include "detail/reachability.hpp"
 #include "detail/symbol_classes.hpp"
 
 namespace autolib {
@@ -33,52 +34,24 @@ automaton minimize_partition(const automaton& dfa) {
 
     // Live states : reachable from the initial state and leading to an accepting state, numbered from 0 to n-1
     std::vector<char> reached(u(n_all), 0);
-    std::vector<std::int32_t> stack{init};
+    std::vector<std::int32_t> work(u(n_all));
     reached[u(init)] = 1;
-    while (!stack.empty()) {
-        auto s = stack.back();
-        stack.pop_back();
-        for (auto e = out_start[u(s)]; e < out_start[u(s) + 1]; ++e) {
-            auto t = out_target[u(e)];
-            if (!reached[u(t)]) {
-                reached[u(t)] = 1;
-                stack.push_back(t);
-            }
-        }
-    }
-    std::vector<std::int32_t> in_start(u(n_all) + 1, 0);
-    for (std::int32_t s = 0; s < n_all; ++s)
-        if (reached[u(s)])
-            for (auto e = out_start[u(s)]; e < out_start[u(s) + 1]; ++e)
-                ++in_start[u(out_target[u(e)]) + 1];
-    for (std::int32_t s = 0; s < n_all; ++s)
-        in_start[u(s) + 1] += in_start[u(s)];
-    std::vector<std::int32_t> in_orig(u(in_start[u(n_all)]));
-    {
-        std::vector<std::int32_t> fill(in_start.begin(), in_start.end() - 1);
-        for (std::int32_t s = 0; s < n_all; ++s)
-            if (reached[u(s)])
-                for (auto e = out_start[u(s)]; e < out_start[u(s) + 1]; ++e)
-                    in_orig[u(fill[u(out_target[u(e)])]++)] = s;
-    }
+    work[0] = init;
+    detail::propagate<std::int32_t, std::int32_t>(out_start, {}, out_target, reached, work, 1);
+    detail::predecessors preds(u(n_all), [&](std::size_t s, auto&& f) {
+        if (reached[s])
+            for (auto e = out_start[s]; e < out_start[s + 1]; ++e)
+                f(out_target[u(e)]);
+    });
     std::vector<char> useful(u(n_all), 0);
+    std::size_t accepting = 0;
     for (std::int32_t s = 0; s < n_all; ++s) {
         if (reached[u(s)] && dfa.is_accept(s)) {
             useful[u(s)] = 1;
-            stack.push_back(s);
+            work[accepting++] = s;
         }
     }
-    while (!stack.empty()) {
-        auto s = stack.back();
-        stack.pop_back();
-        for (auto i = in_start[u(s)]; i < in_start[u(s) + 1]; ++i) {
-            auto p = in_orig[u(i)];
-            if (!useful[u(p)]) {
-                useful[u(p)] = 1;
-                stack.push_back(p);
-            }
-        }
-    }
+    detail::propagate<std::uint32_t, std::int32_t>(preds.start, {}, preds.sources, useful, work, accepting);
     if (!useful[u(init)]) {
         automaton out;
         out.set_initial(out.add_state());

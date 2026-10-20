@@ -41,6 +41,15 @@ auto w = d.shortest_word();          // std::optional<word> : {0, 0, 0}
 - **Search** of the leftmost-longest factors of a sequence belonging to a language, in linear time.
 - **Words of a language** : lazy enumeration in shortlex order, exact counting of the words of a length, uniform
   random sampling, and conversion between words and their ranks in lexicographic order.
+- **Weighted automata** : additive costs on the edges, the cost of a word being the least cost of its accepting
+  paths. Shortest paths (Dijkstra, DAG, Bellman-Ford), costs of words, of lengths and of prefixes, union,
+  concatenation, product, star, exact determinization and minimization, the k cheapest paths and the k cheapest
+  distinct words, lazily, compiled evaluators.
+- **Automata weighted by vectors** : several costs at once, with Pareto fronts, lexicographic optima,
+  scalarizations and products keeping every combination of paths.
+- **Exact arithmetic where doubles would round** : the algorithms comparing sums of costs (Bellman-Ford beyond the
+  integers, the transformations, the enumerations by cost) count in units of the finest quantum of the weights,
+  and round each result once; `dyadic` gives exact sums of doubles.
 - **Big integers** without dependency, for counts beyond 64 bits : `big_integer` has the operators of the
   built-in integers, stores the values fitting in 64 bits inline, and takes fast paths on them.
 
@@ -138,6 +147,65 @@ auto z = 123456789012345678901234567890_big;
 std::cout << z / 7 << ' ' << z.to_double() << '\n';
 ```
 
+## Weighted automata
+
+```cpp
+autolib::weighted_automaton::builder b;
+auto s = b.add_state(), t = b.add_state();
+b.set_initial(s);
+b.set_accept(t, 0.5);                                  // final cost
+b.add_transition(s, t, 1, 2.0);                        // reads 1 for 2.0
+b.add_transition(s, t, autolib::interval_set::range(0, 9), 3.0);
+b.add_transition(t, t, 0, 0.25);
+auto a = b.build();
+
+double c = a({1, 0});                                  // 2.75 : the best accepting path
+auto best = a.best_path();                             // its edges, symbols and cost
+auto cheapest = a.k_best_words(5);                     // the 5 cheapest distinct words
+for (const auto& path : a.paths_by_cost())             // every path by increasing cost, lazily
+    if (path.cost() > 4) break;
+auto d = a.determinize().minimize();                   // exact, with costs pushed toward the start
+auto both = a | a.star();                              // least cost over both
+double fast = d.compile()({1, 0, 0});                  // evaluator of a deterministic automaton
+```
+
+An automaton is weighted directly, and a snapshot lets several weightings share the same graph :
+
+```cpp
+auto source = "12+"_re;
+auto direct = source.weighted([](const automaton_edge&) { return 2.0; });
+double six = direct({1, 2, 2});                        // 6
+
+auto snapshot = source.snapshot();                     // the structure, captured once
+auto price = snapshot.weighted([](const automaton_edge& e) { return e.epsilon ? 0.0 : 2.0; });
+auto duration = snapshot.weighted([](const automaton_edge&) { return 5.0; });
+auto both = snapshot.multi_weighted({[](const automaton_edge&) { return 2.0; },
+                                     [](const automaton_edge&) { return 5.0; }});
+bool shared = price.graph().same_as(both.graph());     // true : same edges, same numbers
+bool member = price.run({1, 2});                       // the language, whatever the costs
+autolib::automaton language = price.to_automaton();    // back to an automaton, without the costs
+```
+
+Several costs at once :
+
+```cpp
+autolib::multi_weighted_automaton::builder m(2);       // time and money
+auto p = m.add_state(), q = m.add_state();
+m.set_initial(p);
+m.set_accept(q);
+m.add_transition(p, q, 7, {10, 1});                    // slow and cheap
+m.add_transition(p, q, 7, {2, 5});                     // fast and expensive
+auto v = m.build();
+auto front = v.pareto_front();                         // both paths
+auto quick = v.lexicographic_best_path({0, 1});        // time first
+auto mix = v.scalarize({1, 2});                        // a scalar automaton : time + 2 money
+```
+
+The weighted part follows the conventions of the Java library : exact results where the Java library is exact,
+identical paths and orders, and explicit errors (`std::invalid_argument` outside the supported family,
+`std::length_error` when a determinization exceeds its budget of states, `std::range_error` when an exact weight is
+not a double).
+
 ## Using the library
 
 autolib needs a C++20 compiler (GCC 11, Clang 14, MSVC 2022, Apple Clang 15 or later) and CMake 3.25.
@@ -173,8 +241,10 @@ cmake --preset bench && cmake --build --preset bench && build/bench/benchmarks/a
 ```
 
 The tests check every operation against a direct simulation on all the short words of random automata, and
-against the results of the Java library on 600 random expressions (`tests/data/java_oracle.tsv`, generated by
-`tools/java-oracle`). Big integers are checked against the integers of Python (`tools/big-oracle`).
+against the results of the Java library on 600 random expressions (`tests/data/java_oracle.tsv`) and 400 random
+weighted automata, cyclic, with epsilon edges and signed weights (`tests/data/java_weighted.tsv`) : costs, k best
+paths and words with their edges, determinizations, minimizations and errors, all generated by
+`tools/java-oracle`. Big integers and dyadics are checked against the exact numbers of Python (`tools/big-oracle`).
 
 ## Performance
 
@@ -202,6 +272,20 @@ Median times on the same machine and identical inputs, against the Java library 
 | Counting words of length 2000 (2000-bit counts)  | 1695 ms    | 253 ms   | 6.7×     |
 | Random word of length 1000                       | 455 ms     | 172 ms   | 2.6×     |
 | Random word of length 1000, sampler reused       | 455 ms     | 0.71 ms  | 640×     |
+
+Weighted automata, measured back to back on a loaded machine :
+
+| Benchmark                                                      | Java 4.0.0 | autolib  | Speed-up |
+|----------------------------------------------------------------|-----------:|---------:|---------:|
+| Costs of 1000 words of length 30, NFA of 300 states with epsilon | 2259 ms  | 1359 ms  | 1.7×     |
+| Shortest paths, 200000 states (Dijkstra)                       | 446 ms     | 363 ms   | 1.2×     |
+| Shortest paths, 400 states with signed fractions (exact Bellman-Ford) | 2.31 ms | 1.65 ms | 1.4×  |
+| Exact determinization, 6358 states built                       | 95.8 ms    | 86.9 ms  | 1.1×     |
+| Exact minimization, 2000 states                                | 30.0 ms    | 23.7 ms  | 1.3×     |
+| 2000 cheapest paths of a cyclic automaton                      | 13.7 ms    | 13.5 ms  | 1.0×     |
+| 500 cheapest distinct words of an NFA                          | 19.0 ms    | 13.5 ms  | 1.4×     |
+| Pareto front of a DAG weighted by pairs                        | 2.60 ms    | 1.64 ms  | 1.6×     |
+| Cost of 10⁶ symbols, compiled weighted DFA                     | 44.1 ms    | 20.2 ms  | 2.2×     |
 
 ## License
 

@@ -70,7 +70,12 @@ public:
     /// \throws std::invalid_argument if the double is infinite or not a number
     [[nodiscard]] static big_integer from_double(double value);
 
-    big_integer(const big_integer& other);
+    big_integer(const big_integer& other) : size_(other.size_), negative_(other.negative_) {
+        if (other.size_ <= 1)
+            small_ = other.small_value();
+        else
+            copy_heap(other);
+    }
     big_integer(big_integer&& other) noexcept
         : size_(std::exchange(other.size_, 0)), capacity_(std::exchange(other.capacity_, 1)),
           negative_(std::exchange(other.negative_, false)) {
@@ -79,7 +84,18 @@ public:
         else
             small_ = other.small_;
     }
-    big_integer& operator=(const big_integer& other);
+    big_integer& operator=(const big_integer& other) {
+        if (this != &other) {
+            if (other.size_ <= 1) {
+                data()[0] = other.small_value();
+                size_ = other.size_;
+                negative_ = other.negative_;
+            } else {
+                assign_heap(other);
+            }
+        }
+        return *this;
+    }
     big_integer& operator=(big_integer&& other) noexcept {
         if (this != &other) {
             release();
@@ -103,7 +119,10 @@ public:
         negative_ = small.negative_;
         return *this;
     }
-    ~big_integer() { release(); }
+    ~big_integer() {
+        if (capacity_ > 1)
+            free_heap();
+    }
 
     /// -1, 0 or 1 according to the sign.
     [[nodiscard]] int signum() const noexcept { return size_ == 0 ? 0 : negative_ ? -1 : 1; }
@@ -152,8 +171,16 @@ public:
     [[nodiscard]] std::string to_string() const;
 
     // Arithmetic
-    big_integer& operator+=(const big_integer& other);
-    big_integer& operator-=(const big_integer& other);
+    big_integer& operator+=(const big_integer& other) {
+        if (this != &other && size_ <= 1 && other.size_ <= 1 && add_small(other.small_value(), other.negative_))
+            return *this;
+        return add_slow(other, false);
+    }
+    big_integer& operator-=(const big_integer& other) {
+        if (this != &other && size_ <= 1 && other.size_ <= 1 && add_small(other.small_value(), !other.negative_))
+            return *this;
+        return add_slow(other, true);
+    }
     big_integer& operator*=(const big_integer& other);
     big_integer& operator/=(const big_integer& other);
     big_integer& operator%=(const big_integer& other);
@@ -237,12 +264,22 @@ public:
     [[nodiscard]] friend big_integer operator>>(big_integer a, std::size_t bits) { return std::move(a >>= bits); }
 
     [[nodiscard]] friend bool operator==(const big_integer& a, const big_integer& b) noexcept {
-        return a.negative_ == b.negative_ && compare_magnitudes(a, b) == 0;
+        if (a.negative_ != b.negative_ || a.size_ != b.size_)
+            return false;
+        if (a.size_ <= 1)
+            return a.small_value() == b.small_value();
+        return compare_magnitudes(a, b) == 0;
     }
     [[nodiscard]] friend std::strong_ordering operator<=>(const big_integer& a, const big_integer& b) noexcept {
         if (a.negative_ != b.negative_)
             return a.negative_ ? std::strong_ordering::less : std::strong_ordering::greater;
-        int c = compare_magnitudes(a, b);
+        int c;
+        if (a.size_ <= 1 && b.size_ <= 1) {
+            auto x = a.small_value(), y = b.small_value();
+            c = x < y ? -1 : x > y ? 1 : 0;
+        } else {
+            c = compare_magnitudes(a, b);
+        }
         if (a.negative_)
             c = -c;
         return c < 0 ? std::strong_ordering::less : c > 0 ? std::strong_ordering::greater : std::strong_ordering::equal;
@@ -250,20 +287,59 @@ public:
 
     AUTOLIB_EXPORT friend std::ostream& operator<<(std::ostream& out, const big_integer& x);
 
-    [[nodiscard]] std::size_t hash() const noexcept;
+    [[nodiscard]] std::size_t hash() const noexcept {
+        if (size_ <= 1) {
+            std::uint64_t h = (small_value() ^ (negative_ ? 0x9e3779b97f4a7c15U : 0)) * 0xbf58476d1ce4e5b9U;
+            return static_cast<std::size_t>(h ^ (h >> 31));
+        }
+        return hash_limbs();
+    }
 
 private:
     [[nodiscard]] const limb* data() const noexcept { return capacity_ > 1 ? heap_ : &small_; }
     [[nodiscard]] limb* data() noexcept { return capacity_ > 1 ? heap_ : &small_; }
     /// The magnitude of a value of at most one limb
     [[nodiscard]] limb small_value() const noexcept { return size_ == 0 ? 0 : data()[0]; }
-    void release() noexcept;
+    void release() noexcept {
+        if (capacity_ > 1)
+            free_heap();
+        small_ = 0;
+        size_ = 0;
+        capacity_ = 1;
+        negative_ = false;
+    }
+    void free_heap() noexcept;
+    [[nodiscard]] std::size_t hash_limbs() const noexcept;
+    void copy_heap(const big_integer& other);
+    void assign_heap(const big_integer& other);
     void negate() noexcept { negative_ = size_ != 0 && !negative_; }
     [[nodiscard]] static int compare_magnitudes(const big_integer& a, const big_integer& b) noexcept;
 
     limb* reserve_limbs(std::size_t n);
     void set_magnitude_size(std::size_t n) noexcept;
     bool fast_add_product(limb a, limb b) noexcept;
+    /// Adds (negative ? -b : b) to a value of at most one limb, if the result fits in one limb.
+    bool add_small(limb b, bool negative) noexcept {
+        limb a = small_value(), r;
+        bool sign;
+        if (negative_ == negative || a == 0) {
+            r = a + b;
+            if (r < a)
+                return false;
+            sign = a == 0 ? negative : negative_;
+        } else if (a >= b) {
+            r = a - b;
+            sign = negative_;
+        } else {
+            r = b - a;
+            sign = negative;
+        }
+        data()[0] = r;
+        size_ = r != 0 ? 1 : 0;
+        negative_ = sign && r != 0;
+        return true;
+    }
+    big_integer& add_slow(const big_integer& other, bool subtract);
     big_integer& add_product_slow(const big_integer& a, limb b);
 
     friend struct big_integer_access;
