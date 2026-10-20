@@ -19,6 +19,7 @@
 #include <initializer_list>
 #include <memory>
 #include <span>
+#include <string>
 #include <vector>
 
 #include "autolib/automaton.hpp"
@@ -89,6 +90,8 @@ public:
     /// A new automaton with the same states and language. Parallel edges merge : the distinct paths, and the
     /// costs of any weighting, are forgotten.
     [[nodiscard]] automaton to_automaton() const;
+    /// The Graphviz description of the graph, the edges of `highlight` drawn in colour.
+    [[nodiscard]] std::string to_dot(std::span<const edge_id> highlight = {}) const;
 
     /// Whether two handles designate the same graph : weightings require it to be combined.
     [[nodiscard]] bool same_as(const automaton_graph& other) const noexcept { return data_ == other.data_; }

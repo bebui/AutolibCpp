@@ -568,6 +568,9 @@ class AutomatonGraph:
 
     def to_automaton(self) -> Automaton: ...
 
+    def to_dot(self, highlight: Sequence[int] | None = None) -> str:
+        """The Graphviz description, the edges of highlight drawn in colour."""
+
     def same_as(self, other: AutomatonGraph) -> bool:
         """Whether both designate the same graph."""
 
@@ -750,6 +753,15 @@ class WeightedAutomaton:
 
     def to_automaton(self) -> Automaton:
         """The automaton of the language, without the costs."""
+
+    @overload
+    def to_dot(self, highlight: WeightedPath) -> str: ...
+
+    @overload
+    def to_dot(self, highlight: Sequence[int] | None = None) -> str:
+        """
+        The Graphviz description : symbols / cost on the edges, final costs under the accepting states; the edges of highlight, a WeightedPath or a list of edges, are drawn in colour.
+        """
 
     def evaluator(self) -> WeightedAutomaton.Evaluator: ...
 
@@ -967,6 +979,15 @@ class MultiWeightedAutomaton:
     def __contains__(self, arg: Sequence[int], /) -> bool: ...
 
     def to_automaton(self) -> Automaton: ...
+
+    @overload
+    def to_dot(self, highlight: MultiWeightedPath) -> str: ...
+
+    @overload
+    def to_dot(self, highlight: Sequence[int] | None = None) -> str:
+        """
+        The Graphviz description with the vectors of costs; the edges of highlight, a MultiWeightedPath or a list of edges, are drawn in colour.
+        """
 
     def project(self, dimension: int) -> WeightedAutomaton: ...
 

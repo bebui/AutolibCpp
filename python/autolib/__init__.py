@@ -62,6 +62,11 @@ from ._autolib import (
     shortest_paths_from,
 )
 
+from ._drawing import install as _install_drawings
+from ._drawing import render, to_svg
+
+_install_drawings(Automaton, WeightedAutomaton, MultiWeightedAutomaton, AutomatonGraph)
+
 __all__ = [
     "MAX_SYMBOL",
     "MIN_SYMBOL",
@@ -105,6 +110,8 @@ __all__ = [
     "k_best_paths_of_length",
     "k_best_words_of_length",
     "minimize_dag",
+    "render",
     "shortest_paths",
     "shortest_paths_from",
+    "to_svg",
 ]
