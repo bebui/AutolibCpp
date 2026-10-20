@@ -2,15 +2,18 @@
 // Copyright (c) 2025-2026 Julien Menana
 
 /// \file
-/// Enumeration of the words of a language.
+/// Enumeration, counting, ranking and uniform sampling of the words of a language.
 
 #pragma once
 
 #include <iterator>
 #include <memory>
+#include <optional>
+#include <random>
 #include <vector>
 
 #include "autolib/automaton.hpp"
+#include "autolib/big_integer.hpp"
 #include "autolib/compiled_dfa.hpp"
 #include "autolib/export.hpp"
 
@@ -75,6 +78,84 @@ private:
 /// \throws std::invalid_argument if `max_length` is negative
 [[nodiscard]] inline word_range words(const automaton& a, int max_length) {
     return {a, max_length};
+}
+
+/// The number of words of a given length in the language of `a`, by dynamic programming on a deterministic
+/// automaton : O(length x transitions) operations on integers.
+/// \throws std::invalid_argument if `length` is negative
+[[nodiscard]] AUTOLIB_EXPORT big_integer count_words(const automaton& a, int length);
+
+/// The words of a given length of a language, numbered in lexicographic order : `count()` words, of ranks 0 to
+/// `count() - 1`. Draws them uniformly, and converts between words and ranks, each in time proportional to the
+/// length times the number of transitions per state.
+///
+/// The number of words from every state for every remaining length is computed once, by the constructor : a
+/// sampler draws many words quickly.
+///
+/// ```cpp
+/// word_sampler sampler("(0|1)*0(0|1){3}"_re, 20);
+/// std::mt19937_64 rng(42);
+/// word w = sampler(rng);                   // uniform among the sampler.count() = 2^19 words
+/// auto r = sampler.rank(w);                // its rank, sampler.unrank(*r) == w
+/// ```
+///
+/// Instances are immutable and can be shared between threads, each thread drawing with its own generator.
+class AUTOLIB_EXPORT word_sampler {
+public:
+    /// Prepares the words of length `length` of the language of `a`.
+    /// \throws std::invalid_argument if `length` is negative
+    word_sampler(const automaton& a, int length);
+
+    [[nodiscard]] int length() const noexcept { return length_; }
+    /// The number of words.
+    [[nodiscard]] const big_integer& count() const noexcept { return count_; }
+    /// Whether the language has no word of that length.
+    [[nodiscard]] bool empty() const noexcept { return count_.is_zero(); }
+
+    /// The word of a given rank in lexicographic order.
+    /// \throws std::out_of_range unless 0 <= rank < count()
+    [[nodiscard]] word unrank(const big_integer& rank) const;
+    /// The rank of a word in lexicographic order, if it is one of the words.
+    [[nodiscard]] std::optional<big_integer> rank(std::span<const symbol> w) const;
+    [[nodiscard]] std::optional<big_integer> rank(std::initializer_list<symbol> w) const {
+        return rank(std::span(w.begin(), w.size()));
+    }
+
+    /// Draws a word uniformly.
+    /// \throws std::out_of_range if there is no word
+    template <std::uniform_random_bit_generator G>
+    [[nodiscard]] word operator()(G& g) const {
+        if (empty())
+            throw std::out_of_range("No word of length " + std::to_string(length_));
+        return unrank(big_integer::uniform(count_, g));
+    }
+
+private:
+    /// The magnitude of the number of words of length `remaining` accepted from `s`.
+    [[nodiscard]] std::span<const big_integer::limb> from(int remaining, state_id s) const noexcept {
+        auto i = static_cast<std::size_t>(remaining) * states_ + static_cast<std::size_t>(s);
+        return {limbs_.data() + offsets_[i], limbs_.data() + offsets_[i + 1]};
+    }
+
+    compiled_dfa dfa_;
+    int length_;
+    std::size_t states_;
+    // The counts, for every length then every state, stored contiguously : one allocation instead of one per count
+    std::vector<big_integer::limb> limbs_;
+    std::vector<std::size_t> offsets_;
+    big_integer count_;
+};
+
+/// Draws a word of a given length uniformly among the words of that length of the language of `a`, or returns
+/// nothing if there is none. To draw many words, a `word_sampler` avoids counting again.
+/// \throws std::invalid_argument if `length` is negative
+template <class G>
+    requires std::uniform_random_bit_generator<std::remove_reference_t<G>>
+[[nodiscard]] std::optional<word> random_word(const automaton& a, int length, G&& g) {
+    word_sampler sampler(a, length);
+    if (sampler.empty())
+        return std::nullopt;
+    return sampler(g);
 }
 
 }  // namespace autolib

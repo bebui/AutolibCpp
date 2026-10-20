@@ -2,6 +2,7 @@
 // Copyright (c) 2025-2026 Julien Menana
 
 #include <benchmark/benchmark.h>
+#include <random>
 
 #include "inputs.hpp"
 
@@ -109,5 +110,28 @@ void search_all(benchmark::State& state) {
         benchmark::DoNotOptimize(texts().search.find_all(texts().text).size());
 }
 BENCHMARK(search_all)->Unit(benchmark::kMillisecond);
+
+void count_words_of_length(benchmark::State& state) {
+    auto dfa = automaton::from_regex(inputs::nth_from_end(8));
+    for (auto _ : state)
+        benchmark::DoNotOptimize(count_words(dfa, static_cast<int>(state.range(0))));
+}
+BENCHMARK(count_words_of_length)->Arg(60)->Arg(2000)->Unit(benchmark::kMillisecond);
+
+void random_word_1000(benchmark::State& state) {
+    auto dfa = automaton::from_regex(inputs::nth_from_end(8));
+    std::mt19937_64 rng(3);
+    for (auto _ : state)
+        benchmark::DoNotOptimize(random_word(dfa, 1000, rng));
+}
+BENCHMARK(random_word_1000)->Unit(benchmark::kMillisecond);
+
+void sampler_draw_1000(benchmark::State& state) {
+    word_sampler sampler(automaton::from_regex(inputs::nth_from_end(8)), 1000);
+    std::mt19937_64 rng(3);
+    for (auto _ : state)
+        benchmark::DoNotOptimize(sampler(rng));
+}
+BENCHMARK(sampler_draw_1000)->Unit(benchmark::kMicrosecond);
 
 }  // namespace

@@ -13,6 +13,7 @@ include(Catch)
 
 add_executable(autolib_tests
     automaton_test.cpp
+    big_integer_test.cpp
     interval_set_test.cpp
     java_oracle_test.cpp
     language_test.cpp
