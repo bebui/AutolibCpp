@@ -1,15 +1,53 @@
 name: Python wheels
 
+# Builds and tests the wheels of every platform. A release publishes them on PyPI and creates the GitHub
+# release, either from the Actions tab (Run workflow, with a version : the workflow sets it, commits, tags,
+# builds and publishes) or by pushing a tag vX.Y.Z (tools/release.sh).
+
 on:
   push:
     branches: [master]
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, X.Y.Z (empty : only build the wheels)"
+        required: false
+        default: ""
 
 jobs:
+  prepare:
+    name: Prepare the release
+    if: github.event_name == 'workflow_dispatch' && inputs.version != ''
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    outputs:
+      tag: v${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+      - name: Set the version, commit and tag
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "::error::version X.Y.Z expected, got $VERSION"; exit 1; }
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null; then
+            echo "::error::v$VERSION already exists"; exit 1
+          fi
+          sed -i -E "0,/^    VERSION [0-9]+\.[0-9]+\.[0-9]+/s//    VERSION $VERSION/" CMakeLists.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git diff --quiet || git commit -qam "Release $VERSION"
+          git tag -a "v$VERSION" -m "Release $VERSION"
+          git push origin master "v$VERSION"
+
   wheels:
     name: Wheels on ${{ matrix.os }}
+    needs: prepare
+    if: ${{ !cancelled() && needs.prepare.result != 'failure' }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -18,6 +56,8 @@ jobs:
         os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15, windows-2025, windows-11-arm]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.tag || github.ref }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -32,9 +72,13 @@ jobs:
 
   sdist:
     name: Source distribution
+    needs: prepare
+    if: ${{ !cancelled() && needs.prepare.result != 'failure' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.tag || github.ref }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -55,8 +99,10 @@ jobs:
 
   publish:
     name: Publish on PyPI
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [wheels, sdist]
+    needs: [prepare, wheels, sdist]
+    if: >-
+      !cancelled() && needs.wheels.result == 'success' && needs.sdist.result == 'success' &&
+      (startsWith(github.ref, 'refs/tags/v') || needs.prepare.result == 'success')
     runs-on: ubuntu-24.04
     environment:
       name: pypi
@@ -65,12 +111,36 @@ jobs:
       id-token: write  # trusted publishing : no token is stored
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.tag || github.ref }}
       - name: Check that the tag is the version of CMakeLists.txt
+        env:
+          TAG: ${{ needs.prepare.outputs.tag || github.ref_name }}
         run: |
           version=$(sed -nE 's/^    VERSION ([0-9]+\.[0-9]+\.[0-9]+)/\1/p' CMakeLists.txt | head -1)
-          [ "v$version" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME, version $version"; exit 1; }
+          [ "v$version" = "$TAG" ] || { echo "::error::tag $TAG, version $version"; exit 1; }
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
       - uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    name: GitHub release
+    needs: [prepare, publish]
+    if: ${{ !cancelled() && needs.publish.result == 'success' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create the release with its wheels
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare.outputs.tag || github.ref_name }}
+        run: |
+          gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --title "${TAG#v}" --generate-notes \
+            --notes "pip install automaton-lib==${TAG#v}"
